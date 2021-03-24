@@ -15,10 +15,10 @@
 void parentsignal_handler(int);
 void childsignal_handler (int);
 void randomnumbergenerator ();
+int flag = 0;
+int pid;
 
-void main() 
-{
-	int pid;
+void main() {
 	int fd[2];
 	const int MAXLINE=4096;
 	char line[MAXLINE];
@@ -29,38 +29,54 @@ void main()
 	printf("Pipe error!");
 	} 
 
-	signal(SIGCHLD, parentsignal_handler);
 
 	if (pid < 0) {
 		printf("Fork error!");
-	} else if (pid > 0) {
-		printf("This is the parent process!\n");
-		printf("The process id is: %i\n", getpid());
-		pause();
-	} else {
+	} else if (pid == 0) {							//Child process		
 		signal(SIGTSTP, childsignal_handler);
-		printf("This is the child process!\n");
-		printf("The process id is: %i\n", getpid());
+		signal(SIGINT, childsignal_handler);
+		printf("This is the Child process\n");
+		printf("Its process id is: %i\n", getpid());
+
+		while(sleep(5000)) {}
+	} else {
+		signal(SIGTSTP, SIG_IGN);
+		signal(SIGINT, SIG_IGN);
+		signal(SIGCHLD, parentsignal_handler);
+		printf("\nThis is the parent process");
+		printf("\nThe process id is: %i\n", getpid());			//Parent process
+		pause();
 	}
-
 }
 
-void parentsignal_handler(int signo) {
-	printf("The signal in the parent process has been captured\n");
+void parentsignal_handler(int signo) {						//Signal Handler for the parent process
+	switch (signo) {
+		case SIGINT: printf("\nChild process termination detected!\n");
+			     break;
+		case SIGCHLD: printf("\nChild process has been terminated!\n");
+			      printf("Ending the whole process\n");
+			      break;
+	}
 }
 
-void childsignal_handler(int signo) {
-	printf("\nThe signal in the child process has been captured\n");
-	//randomnumbergenerator();
+void childsignal_handler(int signo) {						//Signal Handler for the child process
+	switch (signo) {
+		case SIGINT: printf("\nCtrl + c detected...\n");
+			     printf("Exiting the program!\n");
+			     exit(0);
+			     break;
+		case SIGTSTP:printf("\nCtrl + z detected...\n");
+			     printf("Starting the random number generator....\n");
+			     randomnumbergenerator();
+			     break;
+	}
 }
 
-void randomnumbergenerator() {
+void randomnumbergenerator() {							
+	//Random number generator function which runs everytime Ctrl+z is pressed
+	//and a random number between 10 and 50 is generated.
 	int number;
 	int number2 = 10;
-	printf("Welcome to random number generator!");
-	
-	if (number == number2) {
-		number = rand() % 40 + 10;
-		number2 = number;
-	} else printf("Random Number generated = %d\n", number);
+	printf("Welcome to the random number generator!");
+	printf("\nRandom number generated = %d\n", rand() % 40 + 10);
 }
