@@ -11,8 +11,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <time.h>
 #include <string.h>
 
@@ -21,12 +22,13 @@ void childsignal_handler (int);
 void randomnumbergenerator ();
 void informationDisplay();
 
-int pid,number,arr[10],fd[2];			//fd[0] is the file descriptor for the read end of the pipe
-										//fd[1] is the file descriptor for the write end of the pipe
+int file,pid,number,arr[1024],fd[2];	//fd[0] is the file descriptor for the read end of the pipe
+time_t times;							//fd[1] is the file descriptor for the write end of the pipe
+struct stat filestat;
 
 void main() {
 	pid = fork();
-	int file = open("STATUS.txt", O_TRUNC | O_CREAT | O_RDWR, 0777);
+	file = open("STATUS.txt", O_TRUNC | O_CREAT | O_RDWR, 0777);
 	if (pipe(fd) < 0) {
 	printf("Pipe error!");
 	} 
@@ -57,9 +59,10 @@ void main() {
 }
 
 void parentsignal_handler(int signo) {						//Signal Handler for the parent process
+	time(&times);
 	switch (signo) {
 		case SIGCHLD: printf("Child process has been terminated!\n");
-			      	  printf("Ending the whole process\n");
+					  printf("The child process stopped at: %s\n", ctime(&times));
 			          break;
 	}
 }
@@ -86,9 +89,13 @@ void randomnumbergenerator() {
 }
 
 void informationDisplay() {
+	time(&times);
+	stat("STATUS.txt", &filestat);
 	printf("Welcome to the information display\n");
 	printf("The parent's pid is: %i\n", getpid());
 	printf("The child's pid is: %i\n", pid);
+	printf("The child process begun at %s", ctime(&times));
+	printf("This file's inode number is: %o\n", filestat.st_ino);
+	printf("The ID location number of this file is: %o\n", filestat.st_dev);
+	printf("The owner ID number of this file is: %o\n", filestat.st_uid);
 }
-
-
